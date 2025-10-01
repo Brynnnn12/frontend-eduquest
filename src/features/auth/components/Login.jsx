@@ -13,13 +13,21 @@ const Login = () => {
   const handleSubmit = async (values) => {
     try {
       const result = await login(values).unwrap();
+      // Handle different user response formats from backend
+      let userData;
+      if (typeof result.user === "string") {
+        userData = { name: result.user };
+      } else {
+        userData = result.user;
+      }
+
       dispatch(
         setCredentials({
-          user: result.user.name,
+          user: userData,
           token: result.accessToken,
         })
       );
-      localStorage.setItem("user", result.user.name);
+      localStorage.setItem("user", JSON.stringify(userData));
       localStorage.setItem("refreshToken", result.refreshToken);
       localStorage.setItem("accessToken", result.accessToken);
       toast.success("Login successful");

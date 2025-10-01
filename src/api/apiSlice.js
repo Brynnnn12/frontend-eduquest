@@ -41,18 +41,23 @@ export const baseQueryWithReauth = async (args, api, extraOptions) => {
           const newRefreshToken = refreshResult.data.data.refreshToken;
           const user = refreshResult.data.data.user;
 
+          // Handle different user response formats from backend
+          let userData;
+          if (typeof user === "string") {
+            userData = { name: user };
+          } else {
+            userData = user;
+          }
+
           // Store new tokens
           setToken(newToken);
           localStorage.setItem("refreshToken", newRefreshToken);
-          localStorage.setItem(
-            "user",
-            typeof user === "string" ? user : user?.name || ""
-          );
+          localStorage.setItem("user", JSON.stringify(userData));
 
           // Update state
           api.dispatch(
             setCredentials({
-              user: typeof user === "string" ? user : user?.name || "",
+              user: userData,
               token: newToken,
             })
           );

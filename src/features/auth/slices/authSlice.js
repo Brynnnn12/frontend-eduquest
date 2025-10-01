@@ -4,7 +4,16 @@ import { removeToken } from "../../../api/tokenHelpers";
 // Initialize state from localStorage
 function getInitialState() {
   const token = localStorage.getItem("accessToken");
-  const user = localStorage.getItem("user");
+  const userString = localStorage.getItem("user");
+  let user = null;
+  if (userString) {
+    try {
+      user = JSON.parse(userString);
+    } catch {
+      // If not JSON, assume it's name string, convert to object
+      user = { name: userString };
+    }
+  }
   return {
     user,
     token,

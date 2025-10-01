@@ -1,6 +1,9 @@
 import { FaBars, FaBell, FaSearch } from "react-icons/fa";
+import { useGetCharacterQuery } from "../../api/characterApiSlice";
 
 export default function Header({ onMenuClick }) {
+  const { data: character } = useGetCharacterQuery();
+
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="flex items-center justify-between px-4 lg:px-6 py-4">
@@ -39,13 +42,16 @@ export default function Header({ onMenuClick }) {
           <div className="flex items-center space-x-3">
             <div className="hidden lg:block text-right">
               <p className="text-sm font-semibold text-gray-900">
-                Petualang Hebat
+                {character?.username || "Loading..."}
               </p>
-              <p className="text-xs text-gray-500">Level 5 Explorer</p>
             </div>
             <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#10B981] to-[#F59E0B] p-0.5">
               <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-                <span className="font-bold text-[#4F46E5]">PH</span>
+                <span className="font-bold text-[#4F46E5]">
+                  {character?.username
+                    ? character.username.charAt(0).toUpperCase()
+                    : "?"}
+                </span>
               </div>
             </div>
           </div>

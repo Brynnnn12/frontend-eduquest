@@ -7,15 +7,22 @@ import {
   FaUserCircle,
   FaGraduationCap,
   FaTrophy,
+  FaTasks,
+  FaChartLine,
 } from "react-icons/fa";
+import { useGetCharacterQuery } from "../../api/characterApiSlice";
 
 export default function Sidebar({ isOpen, setIsOpen }) {
+  const { data: character } = useGetCharacterQuery();
+
   const location = useLocation();
 
   const menuItems = [
     { icon: FaHome, label: "Beranda", path: "/dashboard" },
     { icon: FaTrophy, label: "Badges", path: "/dashboard/badges" },
+    { icon: FaTasks, label: "Missions", path: "/dashboard/missions" },
     { icon: FaBook, label: "Quiz", path: "/dashboard/quiz" },
+    { icon: FaChartLine, label: "Progress", path: "/dashboard/progress" },
     { icon: FaPalette, label: "Character", path: "/dashboard/character" },
     { icon: FaUserCircle, label: "Profile", path: "/dashboard/profile" },
   ];
@@ -35,7 +42,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       {/* Sidebar */}
       <div
         className={`
-          fixed mx-4 sm:mx-0  my-2 px-2 container rounded-2xl lg:static inset-y-0 left-0 z-30
+          fixed  container  lg:static inset-y-0 left-0 z-30
           w-64 bg-blue-600 text-white
           transform transition-transform duration-300 ease-in-out
           flex flex-col
@@ -59,11 +66,16 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         <div className="p-4">
           <div className="flex items-center space-x-3">
             <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
-              <span className="font-bold text-white">PH</span>
+              <span className="font-bold text-white">
+                {character?.username
+                  ? character.username.charAt(0).toUpperCase()
+                  : "?"}
+              </span>
             </div>
             <div>
-              <p className="font-semibold">Petualang Hebat</p>
-              <p className="text-sm text-blue-200">Level 5</p>
+              <p className="font-semibold">
+                {character?.username || "Loading..."}
+              </p>
             </div>
           </div>
         </div>
