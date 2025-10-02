@@ -7,6 +7,8 @@ const Table = memo(
     loading = false,
     error = null,
     emptyMessage = "No data found",
+    isSearching = false,
+    searchQuery = "",
   }) => {
     if (loading) return <div className="text-center py-8">Loading...</div>;
     if (error)
@@ -16,8 +18,20 @@ const Table = memo(
         </div>
       );
     if (!Array.isArray(data) || data.length === 0) {
+      const message =
+        isSearching && searchQuery
+          ? `Tidak ada data ditemukan untuk "${searchQuery}"`
+          : emptyMessage;
       return (
-        <div className="text-center py-8 text-gray-500">{emptyMessage}</div>
+        <div className="text-center py-8 text-gray-500">
+          <div className="text-lg mb-2">📭</div>
+          <div>{message}</div>
+          {isSearching && searchQuery && (
+            <div className="text-sm text-gray-400 mt-2">
+              Coba kata kunci lain atau hapus filter pencarian
+            </div>
+          )}
+        </div>
       );
     }
 

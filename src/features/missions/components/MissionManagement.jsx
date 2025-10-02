@@ -1,156 +1,208 @@
-import React, { useMemo, useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   useGetMissionsQuery,
-  useCreateMissionMutation,
   useUpdateMissionMutation,
   useDeleteMissionMutation,
 } from "../../../api/missionApiSlice";
-import toast from "react-hot-toast";
-import { FaEdit, FaTrash, FaPlus } from "react-icons/fa";
-import { useSelector } from "react-redux";
+import { FaEdit, FaTrash } from "react-icons/fa";
 import Table from "../../../components/Table";
 import Pagination from "../../../components/Pagination";
+import TableControls from "../../../components/TableControls";
 import MissionFormModal from "./MissionFormModal";
 import MissionDeleteModal from "./MissionDeleteModal";
+import useAllDataForSearch from "../../../hooks/useAllDataForSearch";
+import useClientPagination from "../../../hooks/useClientPagination";
+import useEntityOperations from "../../../hooks/useEntityOperations";
+import {
+  PAGINATION,
+  SEARCH_FIELDS,
+  MESSAGES,
+  API_LIMITS,
+} from "../../../constants/appConstants";
 
 const MissionManagement = () => {
-  const [page, setPage] = useState(1);
-  const [limit] = useState(10);
   const [showModal, setShowModal] = useState(false);
   const [editingMission, setEditingMission] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [missionToDelete, setMissionToDelete] = useState(null);
 
-  const user = useSelector((state) => state.auth.user);
-
+  // Load all data for client-side search and pagination
   const {
-    data: missions,
+    data: allMissions,
     isLoading,
     error,
-  } = useGetMissionsQuery({ page, limit });
-  const [createMission] = useCreateMissionMutation();
+  } = useAllDataForSearch(
+    useGetMissionsQuery,
+    {},
+    SEARCH_FIELDS.MISSION,
+    API_LIMITS.MISSION_LOAD_LIMIT
+  );
+
+  // Use custom pagination hook
+  const {
+    paginatedData: paginatedMissions,
+    paginationInfo,
+    handlePageChange,
+    handleItemsPerPageChange,
+    handleSearchChange,
+    search,
+    isSearching,
+  } = useClientPagination(
+    allMissions,
+    PAGINATION.DEFAULT_ITEMS_PER_PAGE,
+    SEARCH_FIELDS.MISSION
+  );
+
+  // Use custom entity operations hook
   const [updateMission] = useUpdateMissionMutation();
   const [deleteMission] = useDeleteMissionMutation();
 
-  const meta = useMemo(() => missions?.meta || {}, [missions?.meta]);
+  const { handleUpdate, handleDelete } = useEntityOperations(
+    {
+      updateTrigger: updateMission,
+      deleteTrigger: deleteMission,
+    },
+    "MISSION"
+  );
 
-  const handleSubmit = async (values, { resetForm }) => {
-    try {
-      if (!user) {
-        toast.error("User not found. Please login again.");
-        return;
-      }
-
-      // Get created_by from user data (handle different backend formats)
-      const createdBy =
-        typeof user === "string" ? user : user?.id || user?.name;
-
-      if (!createdBy) {
-        toast.error("Invalid user data. Please login again.");
-        return;
-      }
-
-      const dataToSubmit = {
-        ...values,
-        created_by: createdBy,
-        points: parseInt(values.points, 10),
-      };
-      if (editingMission) {
-        await updateMission({
-          id: editingMission.id,
-          data: dataToSubmit,
-        }).unwrap();
-        toast.success("Mission updated successfully!");
-      } else {
-        await createMission(dataToSubmit).unwrap();
-        toast.success("Mission created successfully!");
-      }
+  const handleSubmit = useCallback(
+    async (values, { resetForm }) => {
+      await handleUpdate(editingMission.id, values);
       setShowModal(false);
       setEditingMission(null);
       resetForm();
-    } catch (error) {
-      console.error("Error saving mission:", error);
-      toast.error("Failed to save mission");
-    }
-  };
+    },
+    [editingMission, handleUpdate]
+  );
 
-  const handleEdit = (mission) => {
+  const handleEdit = useCallback((mission) => {
     setEditingMission(mission);
     setShowModal(true);
-  };
+  }, []);
 
-  const handleDelete = (id) => {
-    setMissionToDelete(id);
-    setShowDeleteModal(true);
-  };
-
-  const confirmDelete = async () => {
+  const confirmDelete = useCallback(async () => {
     try {
-      await deleteMission(missionToDelete).unwrap();
-      toast.success("Mission deleted successfully!");
+      await handleDelete(missionToDelete);
       setShowDeleteModal(false);
       setMissionToDelete(null);
     } catch {
-      toast.error("Failed to delete mission");
+      // Error sudah dihandle di custom hook
     }
-  };
+  }, [missionToDelete, handleDelete]);
 
-  const columns = [
-    { key: "title", label: "Title" },
-    { key: "subject", label: "Subject" },
-    { key: "level", label: "Level" },
-    {
-      key: "actions",
-      label: "Actions",
-      render: (mission) => (
-        <div className="flex gap-2">
-          <button
-            onClick={() => handleEdit(mission)}
-            className="text-indigo-600 hover:text-indigo-900"
-          >
-            <FaEdit />
-          </button>
-          <button
-            onClick={() => handleDelete(mission.id)}
-            className="text-red-600 hover:text-red-900"
-          >
-            <FaTrash />
-          </button>
-        </div>
-      ),
-    },
-  ];
+  const handleDeleteClick = useCallback((id) => {
+    setMissionToDelete(id);
+    setShowDeleteModal(true);
+  }, []);
 
-  const openCreateModal = () => {
-    setEditingMission(null);
-    setShowModal(true);
-  };
+  const columns = useMemo(
+    () => [
+      {
+        key: "title",
+        label: "Title",
+        render: (mission) => (
+          <div className="max-w-xs truncate" title={mission.title}>
+            {mission.title}
+          </div>
+        ),
+      },
+      {
+        key: "description",
+        label: "Description",
+        render: (mission) => (
+          <div className="max-w-xs truncate" title={mission.description}>
+            {mission.description}
+          </div>
+        ),
+      },
+      {
+        key: "subject",
+        label: "Subject",
+        render: (mission) => (
+          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+            {mission.subject}
+          </span>
+        ),
+      },
+      {
+        key: "level",
+        label: "Level",
+        render: (mission) => (
+          <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+            {mission.level}
+          </span>
+        ),
+      },
+      {
+        key: "points",
+        label: "Points",
+        render: (mission) => (
+          <span className="font-semibold text-purple-600">
+            {mission.points}
+          </span>
+        ),
+      },
+      {
+        key: "actions",
+        label: "Actions",
+        render: (mission) => (
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleEdit(mission)}
+              className="text-indigo-600 hover:text-indigo-900"
+            >
+              <FaEdit />
+            </button>
+            <button
+              onClick={() => handleDeleteClick(mission.id)}
+              className="text-red-600 hover:text-red-900"
+            >
+              <FaTrash />
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [handleEdit, handleDeleteClick]
+  );
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Mission Management</h1>
-        <button
-          onClick={openCreateModal}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-        >
-          <FaPlus /> Add Mission
-        </button>
       </div>
+
+      <TableControls
+        searchValue={search}
+        onSearchChange={handleSearchChange}
+        perPage={paginationInfo.itemsPerPage}
+        onPerPageChange={handleItemsPerPageChange}
+        totalItems={paginationInfo.totalItems}
+        currentPage={paginationInfo.currentPage}
+        itemsPerPage={paginationInfo.itemsPerPage}
+        searchPlaceholder={MESSAGES.SEARCH_PLACEHOLDER.MISSION}
+        isSearchLoading={false}
+        showNoDataMessage={false}
+        searchMode="client"
+        clientSearchResults={paginatedMissions}
+        className="mb-6"
+      />
 
       <Table
         columns={columns}
-        data={missions}
+        data={paginatedMissions}
         loading={isLoading}
         error={error}
-        emptyMessage="No missions found"
+        emptyMessage={MESSAGES.EMPTY_STATE.MISSION}
+        isSearching={isSearching}
+        searchQuery={search}
       />
 
       <Pagination
-        currentPage={page}
-        totalItems={meta.total}
-        itemsPerPage={limit}
-        onPageChange={setPage}
+        currentPage={paginationInfo.currentPage}
+        totalItems={paginationInfo.totalItems}
+        itemsPerPage={paginationInfo.itemsPerPage}
+        onPageChange={handlePageChange}
         className="mt-6"
       />
 

@@ -17,6 +17,7 @@ import QuizManagement from "../features/quiz/components/QuizManagement";
 import ProfilePage from "../features/profile/components/ProfilePage";
 import ProgressManagement from "../features/progress/components/ProgressManagement";
 import HomePage from "../pages/home/HomePage";
+import HomeContent from "../pages/home/HomeContent";
 import LoginPage from "../pages/auth/LoginPage";
 import DashboardHome from "../pages/dashboard/DashboardHome";
 
@@ -25,10 +26,20 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <HomePage />,
-  },
-  {
-    path: "/mission/:missionId",
-    element: <MissionDetail />,
+    children: [
+      {
+        path: "",
+        element: <HomeContent />,
+      },
+      {
+        path: "quiz/:quizId",
+        element: <QuizPage />,
+      },
+      {
+        path: "mission/:missionId",
+        element: <MissionDetail />,
+      },
+    ],
   },
   {
     path: "/login",
@@ -80,10 +91,6 @@ const router = createBrowserRouter([
       {
         path: "quiz",
         element: <QuizManagement />,
-      },
-      {
-        path: "quiz/:quizId",
-        element: <QuizPage />,
       },
       {
         path: "profile",

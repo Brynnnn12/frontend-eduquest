@@ -14,7 +14,10 @@ export const missionApi = createApi({
       providesTags: ["Mission"],
       transformResponse: (response) => {
         if (response.status === "success") {
-          return response.data.data; // 👈 Access the data array
+          return {
+            data: response.data.data, // 👈 Access the data array
+            meta: response.data.meta, // 👈 Include meta information
+          };
         } else {
           throw new Error(response.message || "Failed to fetch missions");
         }

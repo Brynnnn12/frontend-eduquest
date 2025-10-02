@@ -1,12 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import {
-  FaArrowLeft,
-  FaPlay,
-  FaStar,
-  FaClock,
-  FaTrophy,
-  FaBookOpen,
-} from "react-icons/fa";
+import { FaPlay, FaStar, FaClock, FaTrophy, FaBookOpen } from "react-icons/fa";
 import { useGetMissionByIdQuery } from "../../api/missionApiSlice";
 import { useSelector } from "react-redux";
 
@@ -45,7 +38,7 @@ const MissionDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 py-8 px-4">
+      <div className="py-8 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
@@ -58,7 +51,7 @@ const MissionDetail = () => {
 
   if (error || !mission) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 py-8 px-4">
+      <div className="py-8 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
             <h1 className="text-2xl font-bold text-gray-800 mb-4">
@@ -84,23 +77,21 @@ const MissionDetail = () => {
       navigate("/login");
       return;
     }
+    //jika misi nya sudah diselesaikan maka nggak bisa masuk quiz lagi tetep di halaman misi
+    if (mission.status === "completed") {
+      navigate(`/mission/${mission.id}`);
+      return;
+    }
     // Navigate to quiz page for this mission
-    navigate(`/dashboard/quiz/${mission.id}`);
+    navigate(`/quiz/${mission.id}`);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 py-8 px-4">
+    <div className="py-8 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-2xl p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <Link
-              to="/"
-              className="flex items-center space-x-2 text-purple-600 hover:text-purple-800 transition-colors"
-            >
-              <FaArrowLeft />
-              <span>Kembali ke Beranda</span>
-            </Link>
             <div
               className={`px-4 py-2 rounded-full text-sm font-semibold flex items-center space-x-2 ${getDifficultyColor(mission.level)}`}
             >

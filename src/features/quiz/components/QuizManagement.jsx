@@ -4,49 +4,75 @@ import {
   useUpdateQuizMutation,
   useDeleteQuizMutation,
 } from "../../../api/quizApiSlice";
-import toast from "react-hot-toast";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import Table from "../../../components/Table";
 import Pagination from "../../../components/Pagination";
+import TableControls from "../../../components/TableControls";
 import QuizFormModal from "./QuizFormModal";
 import QuizDeleteModal from "./QuizDeleteModal";
+import useAllDataForSearch from "../../../hooks/useAllDataForSearch";
+import useClientPagination from "../../../hooks/useClientPagination";
+import useEntityOperations from "../../../hooks/useEntityOperations";
+import {
+  PAGINATION,
+  SEARCH_FIELDS,
+  MESSAGES,
+  API_LIMITS,
+} from "../../../constants/appConstants";
 
 const QuizManagement = () => {
-  const [page, setPage] = useState(1);
-  const [limit] = useState(10);
   const [showModal, setShowModal] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [quizToDelete, setQuizToDelete] = useState(null);
 
+  // Load all data for client-side search and pagination
   const {
-    data: quizzes,
-
+    data: allQuizzes,
     isLoading,
     error,
-  } = useGetQuizzesQuery({ page, limit });
+  } = useAllDataForSearch(
+    useGetQuizzesQuery,
+    {},
+    SEARCH_FIELDS.QUIZ,
+    API_LIMITS.QUIZ_LOAD_LIMIT
+  );
+
+  // Use custom pagination hook
+  const {
+    paginatedData: paginatedQuizzes,
+    paginationInfo,
+    handlePageChange,
+    handleItemsPerPageChange,
+    handleSearchChange,
+    search,
+    isSearching,
+  } = useClientPagination(
+    allQuizzes,
+    PAGINATION.DEFAULT_ITEMS_PER_PAGE,
+    SEARCH_FIELDS.QUIZ
+  );
+
+  // Use custom entity operations hook
   const [updateQuiz] = useUpdateQuizMutation();
   const [deleteQuiz] = useDeleteQuizMutation();
 
-  const meta = useMemo(() => quizzes?.meta || {}, [quizzes?.meta]);
+  const { handleUpdate, handleDelete } = useEntityOperations(
+    {
+      updateTrigger: updateQuiz,
+      deleteTrigger: deleteQuiz,
+    },
+    "QUIZ"
+  );
 
   const handleSubmit = useCallback(
     async (values, { resetForm }) => {
-      try {
-        await updateQuiz({
-          id: editingQuiz.id,
-          data: values,
-        }).unwrap();
-        toast.success("Quiz updated successfully!");
-        setShowModal(false);
-        setEditingQuiz(null);
-        resetForm();
-      } catch (error) {
-        console.error("Error updating quiz:", error);
-        toast.error("Failed to update quiz");
-      }
+      await handleUpdate(editingQuiz.id, values);
+      setShowModal(false);
+      setEditingQuiz(null);
+      resetForm();
     },
-    [editingQuiz, updateQuiz]
+    [editingQuiz, handleUpdate]
   );
 
   const handleEdit = useCallback((quiz) => {
@@ -54,21 +80,20 @@ const QuizManagement = () => {
     setShowModal(true);
   }, []);
 
-  const handleDelete = useCallback((id) => {
-    setQuizToDelete(id);
-    setShowDeleteModal(true);
-  }, []);
-
   const confirmDelete = useCallback(async () => {
     try {
-      await deleteQuiz(quizToDelete).unwrap();
-      toast.success("Quiz deleted successfully!");
+      await handleDelete(quizToDelete);
       setShowDeleteModal(false);
       setQuizToDelete(null);
     } catch {
-      toast.error("Failed to delete quiz");
+      // Error sudah dihandle di custom hook
     }
-  }, [quizToDelete, deleteQuiz]);
+  }, [quizToDelete, handleDelete]);
+
+  const handleDeleteClick = useCallback((id) => {
+    setQuizToDelete(id);
+    setShowDeleteModal(true);
+  }, []);
 
   const columns = useMemo(
     () => [
@@ -113,7 +138,7 @@ const QuizManagement = () => {
               <FaEdit />
             </button>
             <button
-              onClick={() => handleDelete(quiz.id)}
+              onClick={() => handleDeleteClick(quiz.id)}
               className="text-red-600 hover:text-red-900"
             >
               <FaTrash />
@@ -122,7 +147,7 @@ const QuizManagement = () => {
         ),
       },
     ],
-    [handleEdit, handleDelete]
+    [handleEdit, handleDeleteClick]
   );
 
   return (
@@ -131,19 +156,37 @@ const QuizManagement = () => {
         <h1 className="text-3xl font-bold text-gray-800">Quiz Management</h1>
       </div>
 
+      <TableControls
+        searchValue={search}
+        onSearchChange={handleSearchChange}
+        perPage={paginationInfo.itemsPerPage}
+        onPerPageChange={handleItemsPerPageChange}
+        totalItems={paginationInfo.totalItems}
+        currentPage={paginationInfo.currentPage}
+        itemsPerPage={paginationInfo.itemsPerPage}
+        searchPlaceholder={MESSAGES.SEARCH_PLACEHOLDER.QUIZ}
+        isSearchLoading={false}
+        showNoDataMessage={false}
+        searchMode="client"
+        clientSearchResults={paginatedQuizzes}
+        className="mb-6"
+      />
+
       <Table
         columns={columns}
-        data={quizzes}
+        data={paginatedQuizzes}
         loading={isLoading}
         error={error}
-        emptyMessage="No quizzes found"
+        emptyMessage={MESSAGES.EMPTY_STATE.QUIZ}
+        isSearching={isSearching}
+        searchQuery={search}
       />
 
       <Pagination
-        currentPage={page}
-        totalItems={meta.total}
-        itemsPerPage={limit}
-        onPageChange={setPage}
+        currentPage={paginationInfo.currentPage}
+        totalItems={paginationInfo.totalItems}
+        itemsPerPage={paginationInfo.itemsPerPage}
+        onPageChange={handlePageChange}
         className="mt-6"
       />
 

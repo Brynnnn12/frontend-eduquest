@@ -4,10 +4,12 @@ import { useGetMissionsQuery } from "../../api/missionApiSlice";
 
 const MissionSelection = () => {
   const {
-    data: missions,
+    data: missionsResponse,
     isLoading,
     error,
   } = useGetMissionsQuery({ limit: 4 });
+
+  const missions = missionsResponse?.data || [];
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
@@ -68,10 +70,7 @@ const MissionSelection = () => {
     );
   }
 
-  // Ensure missions is an array before mapping
-  const missionsArray = Array.isArray(missions) ? missions : [];
-
-  if (missionsArray.length === 0) {
+  if (missions.length === 0) {
     return (
       <section
         id="missions"
@@ -106,7 +105,7 @@ const MissionSelection = () => {
 
           {/* Missions Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-            {missionsArray.map((mission) => (
+            {missions.map((mission) => (
               <div
                 key={mission.id}
                 className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-2 border border-purple-100 overflow-hidden"
